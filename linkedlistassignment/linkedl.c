@@ -1,18 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-struct node {
+typedef struct node {
    int data;
    struct node *next;
-};
+}NODE;
 
-struct node *head = NULL;
-struct node *current = NULL;
+//Self referential structure means:
+/*A structure that has a pointer to itself*/
+
+/*Let's make all structure variables auto in main*/
+NODE *head = NULL;
+NODE *current = NULL;
 
 //display the list
 void printList() {
 
-   struct node *ptr = head;
+   NODE *ptr = head;
 
    printf("\n[head] =>");
    //start from the beginning
@@ -24,10 +28,11 @@ void printList() {
    printf(" [null]\n");
 }
 
-//insert link at the first location
 void insert(int data) {
+//insert link at the first location
+   //Completely modifying the insert function
    //create a link
-   struct node *link = (struct node*) malloc(sizeof(struct node));
+   NODE *link = (struct node*) malloc(sizeof(struct node));
 
    //link->key = key;
    link->data = data;
@@ -49,4 +54,4 @@ int main() {
 
    printList();
    return 0;
-}
+  }
