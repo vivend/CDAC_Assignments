@@ -2,7 +2,7 @@
 #include<stdio.h>
 #include<error.h>
 #include<stdlib.h>
-#include "a6.h"
+#include "a1.h"
 //Global variable used by all functions
 static int size = 0;
 
@@ -72,7 +72,8 @@ char menu( int sample_array[] , FILE *log ){
 
 void addInt( int sample_array[ ]  ){
 	int sample_array_i = 0 , found = 0 , number_to_be_added = 0 ;
-	found = generic_search( sample_array , &number_to_be_added ,  searchCriterion );
+	found = generic_search( sample_array , &number_to_be_added , \
+		searchCriterion );
 	if(found < 0){
 		perror("All array elements are filled");
 		return;
@@ -85,18 +86,22 @@ void addInt( int sample_array[ ]  ){
 		}
 		else{
 			printf("Zero found at position = %d\n" , found);
-			printf("Adding %d at position %d\n", number_to_be_added , found);
+			printf("Adding %d at position %d\n", number_to_be_added\
+			, found);
 			sample_array[found]+=number_to_be_added;
 		}
 	}
 }
-int generic_search( const void  *array , const void * key, int (* searchp)  (const void *,const void *) ){
+int generic_search( const void  *array , const void * key,\
+	 int (* searchp) (const void *,const void *) ){
 	int array_i = 0 , found = -1;	
 	return (found = (*searchp)(array,key) );
 }
 int searchCriterion( const void *array , const void * quantityB){
 	int array_i = 0;
-	for(array_i = 0; array_i < size && *( (int*)array + array_i) != *(int *)quantityB ; array_i++);
+	for(array_i = 0; array_i < size && \
+	*( (int*)array + array_i) != *(int *)quantityB ;\
+	array_i++);
 	if(array_i == size){
 		return -1;
 	}
@@ -109,7 +114,10 @@ void removeInt( int sample_array[ ] ){
 	printf("Enter number to be removed\n");
 	scanf("%d", &number_to_be_removed);
 	if( number_to_be_removed != 0){
-		found = generic_search( sample_array , &number_to_be_removed , searchCriterion );
+		found = generic_search( sample_array ,\
+		 &number_to_be_removed ,\
+		 searchCriterion );
+		 
 		if( found < 0 ){
 			perror("No such array element found");
 		}
@@ -124,7 +132,8 @@ void removeInt( int sample_array[ ] ){
 
 
 void modifyInt( int sample_array[] ){
-	int sample_array_i = 0 , found = 0 , number_to_be_replaced = 0 ,  new_number = 0;
+	int sample_array_i = 0 , found = 0 , number_to_be_replaced = 0 , \
+	new_number = 0;
 	printf("Enter number to be replaced\n");
 	scanf("%d", &number_to_be_replaced);
 	if( number_to_be_replaced != 0){

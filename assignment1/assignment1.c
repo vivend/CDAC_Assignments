@@ -1,5 +1,5 @@
 #include<stdio.h>
-#include "a6.h" // a6 for assignment on the 6th day 
+#include "a1.h" // a6 for assignment on the 6th day 
 #define MAX_SIZE 500
 /* function prototypes*/
 void readArray( int [] );
