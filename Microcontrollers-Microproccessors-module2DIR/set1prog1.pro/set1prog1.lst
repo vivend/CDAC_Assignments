@@ -1,0 +1,82 @@
+gavrasm Gerd's AVR assembler version 3.9 (C)2018 by DG4FAC
+----------------------------------------------------------
+Source file: set1prog1.asm
+Hex file:    set1prog1.hex
+Eeprom file: set1prog1.eep
+Compiled:    17.09.2018, 19:10:49
+Pass:        2
+     1: ;
+     2: ; *********************************
+     3: ; *                               *
+     4: ; *                               *
+     5: ; *********************************
+     6: ;
+     7: .NOLIST
+    10: ; Macro to initialize the callstack
+    11: 
+    12: .MACRO STACKINIT
+    13: LDI @0 , HIGH(@1)
+    14: OUT SPH , @0
+    15: LDI @0 , LOW(@1)
+    16: OUT SPL , @0
+    17: .ENDMACRO
+    18: ;Macro to initialize any value Lower 15 registers
+    19: .MACRO STOREVAL
+    20: .EQU TEMPLOC = 0X200
+    21: LDI @0 , @1
+    22: STS TEMPLOC , @0
+    23: LDS @2 , TEMPLOC
+    24: PUSH @2
+    25: .ENDMACRO
+    26: ; Macro to PUSH to the stack
+    27: .MACRO      STACKABLE
+    28:             MOV R25 , @0
+    29:             INC R25
+    30:             MOV @1, R25
+    31:             PUSH @1
+    32: .ENDMACRO
+    33: ;MACRO TO PUSH STATUS REGISTER ONTO THE STACK
+    34: .MACRO      SREG_STACKABLE
+    35:             SEI
+    36:             SEZ
+    37:             SET
+    38:             SEC
+    39:             IN R25 , @0
+    40:             PUSH R25
+    41: .ENDMACRO
+    42: ; Macro to POP from the stack
+    43: .MACRO     REMOVABLE_TO
+    44:            POP @0
+    45: .ENDMACRO
+    46: .CSEG
+    47: .ORG 0x0000
+    48: STACKINIT R20 , RAMEND
+    49: STOREVAL R25 ,1 , R0
+    50: ; STACKING UP THE VALUES
+    51: STACKABLE R0 , R1
+    52: STACKABLE R1 , R2
+    53: STACKABLE R2 , R3
+    54: STACKABLE R3 , R4
+    55: STACKABLE R4 , R5
+    56: STACKABLE R5 , R6
+    57: STACKABLE R6 , R7
+    58: ;STACKING THE STATUS REGISTER
+    59: SREG_STACKABLE SREG
+    60: REMOVABLE_TO R15
+    61: REMOVABLE_TO R16
+    62: REMOVABLE_TO R17
+    63: REMOVABLE_TO R18
+    64: REMOVABLE_TO R19
+    65: REMOVABLE_TO R20
+    66: REMOVABLE_TO R21
+    67: REMOVABLE_TO R22
+    68: REMOVABLE_TO R23
+    69: .EXIT
+
+Program             :       53 words.
+Constants           :        0 words.
+Total program memory:       53 words.
+Eeprom space        :        0 bytes.
+Data segment        :        0 bytes.
+Compilation completed, no errors.
+Compilation endet 17.09.2018, 19:10:49

@@ -1,0 +1,794 @@
+assignment 2
+
+1)
+
+.INCLUDE"M128DEF.INC"
+.CSEG
+.ORG 0X1000
+MYDATA: .DB "HI&HELLO&NAMSTHE";ONLY 10 BYTES IS COPIED TO EPROM
+LDI R16,HIGH(RAMEND)
+OUT SPH,R16
+LDI R16,LOW(RAMEND)
+OUT SPL,R16
+
+
+
+LDI ZH,HIGH(MYDATA<<1)
+LDI ZL,LOW(MYDATA<<1)
+CALL EPROM_BURN
+EPROM_BURN:
+LDI R21,0X01;high
+LDI R22,0X00;low
+LDI R23,10
+LDI R18,0X01
+LDI R17,0X00
+HERE:
+WAIT:
+SBIC EECR,EEWE
+RJMP  WAIT
+OUT EEARH,R18
+OUT EEARL,R17
+
+LPM R20,Z+
+OUT EEDR,R20
+SBI EECR,EEMWE
+SBI EECR,EEWE
+ADD R17,R21
+ADC R18,R22
+DEC R23
+BRNE HERE
+
+
+
+
+here1:jmp here1
+---------------------------------------------------------------
+
+2.
+#include<avr/io.h>
+void transfer(void);
+int main()
+{
+transfer();
+}
+
+void transfer(void)
+{
+
+
+int i=0;
+unsigned char x[15]="abcdefghijklmnop";
+int w = 0x0030;
+for(i=0;i<10;i++)// only 10 bytes is sent
+{
+while(EECR & (1<<EEWE));
+EEAR=w;
+EEDR=x[i];
+EECR |= (1<<EEMWE);
+EECR |= (1<<EEWE);
+w++;
+}
+}
+------------------------------------------------------------------------
+2) b
+
+
+
+.ORG 0X0000
+;jmp main-----------------isr
+.NOLIST
+.INCLUDE "M128DEF.INC"
+.LIST
+
+;.org 0x2c-----------------isr
+;jmp isr_eeprom_read-----------------isr
+
+main:
+LDI R31,0X20 /* data those  stored in register*/
+LDI R30,0X30
+LDI R29,0X40
+LDI R28,0X45
+LDI R27,0X55
+
+STS 0X500,R31 /* memory for data which we stored earlier*/
+STS 0X501,R30
+STS 0X502,R29
+STS 0X503,R28
+STS 0X504,R27
+
+LDI XL,0X00
+LDI XH,0X05
+
+LDI R16,5;COUNTER
+LDI R20,0;FOR ADDITION
+
+LOOP:LD R17,X+
+	 ADD R20,R17
+	 DEC R16
+	 BRNE LOOP
+	 NEG R20
+	 ST X,R20
+
+;------------------------LOAD 5 BYTE FROM DATA MEM TO EEPROM------------------------------------
+
+LDI R16,6;COUNTER WITH CHECKSUM BYTE
+LDI YH,0X05; data memory along with checksum
+LDI YL,0X00
+LDI R18,0X01; eeprom memory to load data
+LDI R17,0X00
+
+HERE1:
+WAIT:SBIC EECR,EEWE;next instruction is skipped if bit in I/O register is cleared
+	 RJMP WAIT
+	 OUT EEARH,R18
+	 OUT EEARL,R17
+	 LD R20,Y+
+	 OUT EEDR,R20
+	 SBI EECR,EEMWE
+	 SBI EECR,EEWE
+	 INC R17
+	 DEC R16
+	 BRNE HERE1
+	 ;sei-----------------isr
+;----------------------LOAD FROM EEPROM TO DATA MEM AND CHECK DATA INTEGRITY---------------------
+
+;isr_eeprom_read:;-----------------isr
+LDI XL,0X00;eeprom memory to read data
+LDI XH,0X01
+LDI R16,6; counter for reading along with checksum bit
+LDI R31,0
+LOOP2:
+WAIT2:SBIC EECR,EEWE
+	  RJMP WAIT2
+	  
+	  OUT EEARH,XH
+	  OUT EEARL,XL
+	  SBI EECR,EERE
+	  IN R20,EEDR; eedr act as input i.e the the data in eedr is loaded to register
+	  ADD R31,R20;to check data integrity
+	  INC XL
+	  DEC R16
+	  BRNE LOOP2
+
+	  CPI R31,0; compare with 0
+	  BRNE END;if not equal then jump to loop i. the data is changed
+
+	  LDI R25,0X10; if sum along with checksum bit is equal to 0
+
+ENDL: RJMP ENDL
+END: LDI R25,0X20
+END_:RJMP END_
+	 
+
+------------------------------------------------------------------
+3)
+.ORG 0X0000
+JMP MAIN
+
+.ORG 0X2C
+JMP EEPROM_READ_ISR
+.NOLIST
+.INCLUDE "M128DEF.INC"
+.LIST
+
+
+
+
+.ORG 0X1000
+MAIN:
+LDI R31,0X25 /* data those  stored in register*/
+LDI R30,0X30
+LDI R29,0X35
+LDI R28,0X40
+LDI R27,0X45
+
+STS 0X500,R31 /* memory for data which we stored earlier*/
+STS 0X501,R30
+STS 0X502,R29
+STS 0X503,R28
+STS 0X504,R27
+
+LDI XL,0X00
+LDI XH,0X05
+
+LDI R16,5;COUNTER
+LDI R20,0;FOR ADDITION
+
+LOOP:LD R17,X+
+	 ADD R20,R17
+	 DEC R16
+	 BRNE LOOP
+	 NEG R20
+	 ST X,R20
+
+;------------------------LOAD 5 BYTE FROM DATA MEM TO EEPROM------------------------------------
+
+LDI R16,6;COUNTER WITH CHECKSUM BYTE
+LDI YH,0X05; data memory along with checksum
+LDI YL,0X00
+LDI R18,0X01; eeprom memory to load data
+LDI R17,0X00
+
+HERE1:
+WAIT:SBIC EECR,EEWE;next instruction is skipped if bit in I/O register is cleared
+	 RJMP WAIT
+	 OUT EEARH,R18
+	 OUT EEARL,R17
+	 LD R20,Y+
+	 OUT EEDR,R20
+	 SBI EECR,EEMWE
+	 SBI EECR,EEWE
+	 SBI EECR,EERIE
+	 INC R17
+	 DEC R16
+	 BRNE HERE1
+	 SEI
+
+;----------------------LOAD FROM EEPROM TO DATA MEM AND CHECK DATA INTEGRITY---------------------
+.ORG 0X2000
+EEPROM_READ_ISR:
+LDI XL,0X00;eeprom memory to read data
+LDI XH,0X01
+LDI R16,6; counter for reading along with checksum bit
+LDI R31,0
+LOOP2:
+WAIT2:SBIC EECR,EEWE
+	  RJMP WAIT2
+	  
+	  OUT EEARH,XH
+	  OUT EEARL,XL
+	  SBI EECR,EERE
+	  IN R20,EEDR; eedr act as input i.e the the data in eedr is loaded to register
+	  ADD R31,R20;to check data integrity
+	  INC XL
+	  DEC R16
+	  BRNE LOOP2
+
+	  CPI R31,0; compare with 0
+	  BRNE END;if not equal then jump to loop i. the data is changed
+
+	  LDI R25,0X10; if sum along with checksum bit is equal to 0
+
+ENDL: RJMP ENDL
+END: LDI R25,0X20; IF WE CHANGE THE VALUE IN EEPROM AFTER ITS BEING WROTE
+END_:RJMP END_
+	 
+
+----------------------------------------------------------------------------
+4)
+.NOLIST
+.ORG 0X0000
+.LIST
+.INCLUDE "M128DEF.INC"
+
+LDI R16,HIGH(RAMEND)
+OUT SPH,R16
+LDI R16,LOW(RAMEND)
+OUT SPL,R16
+
+LDI R17,0XFF
+OUT DDRB,R17
+
+LDI R30,8;COUNTER
+LDI R17,0X00
+
+HERE :  SEC
+		ROR R17
+	
+		DEC R30
+		OUT PORTB,R17
+		;CALL DELAY;forv 1 sec delay 
+		BRNE HERE
+
+LOOP :  JMP LOOP
+
+DELAY: LDI R24,5
+
+LOOP1:
+		DEC R24
+		BRNE LOOP1
+
+-----------------------------------------------------------------------------
+5).INCLUDE"M128DEF.INC"
+.ORG 0X00
+
+
+LDI R16,HIGH(RAMEND)
+OUT SPH,R16
+LDI R16,LOW(RAMEND)
+OUT SPL,R16
+
+LDI R20,0XFF
+LDI R17,8
+OUT DDRB,R20
+LDI R20,0X00
+
+HERE:
+SEC
+ROL R20
+OUT PORTB,R20
+DEC R17
+CALL DELAY_1S
+BRNE HERE
+
+
+DELAY_1S:
+LDI R24,1
+L1:LDI R25,1
+L2:LDI R26,1
+L3:
+NOP
+NOP
+DEC R26
+BRNE L3
+DEC R25
+BRNE L2
+DEC R24
+BRNE L1
+RET
+------------------------------------------------------------------
+6)
+#include<avr/io.h>
+#include<util/delay.h>
+#define LCD_PORT PORTA
+#define LCD_PIN PINA
+#define LCD_DDR DDRA
+#define LCD_RS 0
+#define LCD_RW 1
+#define LCD_EN 2
+
+void lcd_init(void);
+void lcd_command(unsigned char cmd);
+void delay_us(int delay_value);
+void delay_ms(int delay_value);
+void lcd_gotoxy(unsigned char x,unsigned char y);
+void lcd_print(char *lcd_string);
+void lcd_data(unsigned char data);
+
+
+void lcd_data(unsigned char data)
+{
+	LCD_PORT = (LCD_PORT & 0x0f) | (data & 0xf0);//send higher nibble first
+	LCD_PORT |= (1<<LCD_RS);//RS = 1,using data
+	LCD_PORT &= ~(1<<LCD_RW);//RW = 0 
+	LCD_PORT |= (1<<LCD_EN);//send high to low pulse
+	delay_us(1);
+	LCD_PORT &= ~(1<<LCD_EN);
+
+	//delay_us(20);
+	LCD_PORT = (LCD_PORT & 0x0f) | (data << 4);//send lower nibble
+	LCD_PORT |= (1<<LCD_EN);//send high to low pulse
+	delay_us(1);
+	LCD_PORT &= ~(1<<LCD_EN);
+}
+
+void lcd_print(char *lcd_string)
+{	
+	unsigned char i=0;
+	while(lcd_string[i]!='\0')
+	{
+		lcd_data(lcd_string[i]);
+		i++;
+	}
+	
+
+}
+
+void lcd_gotoxy(unsigned char x,unsigned char y)
+{	
+	unsigned char first_char_address[] = {0x80,0xc0};
+	lcd_command(first_char_address[y-1] + x - 1);
+	delay_us(100);
+
+}
+
+void lcd_command(unsigned char cmd)
+{
+	LCD_PORT = (LCD_PORT & 0x0f) | (cmd & 0xf0);//send higher nibble first
+	LCD_PORT &= ~(1<<LCD_RS);//RS = 0
+	LCD_PORT &= ~(1<<LCD_RW);//using command 
+	LCD_PORT |= (1<<LCD_EN);//send high to low pulse
+	delay_us(1);
+	LCD_PORT &= ~(1<<LCD_EN);
+
+	delay_us(20);
+	LCD_PORT = (LCD_PORT & 0x0f) | (cmd << 4);//send lower nibble
+	LCD_PORT |= (1<<LCD_EN);//send high to low pulse
+	delay_us(1);
+	LCD_PORT &= ~(1<<LCD_EN); 
+}
+
+void delay_us(int delay_value)
+{
+	_delay_us(delay_value);
+}
+
+void delay_ms(int delay_value)
+{
+	_delay_ms(delay_value);
+}
+
+void lcd_init(void)
+{	
+	LCD_DDR = 0xff; //make PORTA as output
+	LCD_PORT &= ~(1<<LCD_EN); //clear lcd screen
+
+	delay_us(2000);
+	lcd_command(0x33);
+	delay_us(100);
+	lcd_command(0x32);
+	delay_us(100);
+	lcd_command(0x28);
+	delay_us(100);
+	lcd_command(0x0e);
+	delay_us(100);
+	lcd_command(0x01);
+	delay_us(100);
+	lcd_command(0x06);
+	delay_us(100);
+}
+
+int main()
+{
+   	lcd_init();
+	while(1)
+	{
+		lcd_gotoxy(1,1);
+		lcd_print("C-DAC");
+		delay_ms(1000);
+		lcd_gotoxy(1,2);
+		lcd_print("BANGALORE");
+		delay_ms(1000);
+	}
+
+	return 0;
+}
+
+
+
+
+----------------------------------------------------------------
+7)
+
+#include <stddef.h>
+#include <avr/io.h>
+#include <util/delay.h>
+
+void lcd_command(unsigned char cmd)
+{
+   PORTA=cmd & 0xf0;
+
+   PORTA |=(1<<2);
+  _delay_ms(5);
+  PORTA &=0xf0;   
+
+   cmd=(cmd<<4);
+   PORTA=cmd & 0xf0;
+   
+   PORTA |=(1<<2);
+  _delay_ms(5);
+  PORTA &=0xf0;
+}
+
+void lcd_data(unsigned char data)
+{
+ 
+  PORTA = data & 0xf1;
+	
+	PORTA |=((1<<2)|(1<<0));
+ _delay_ms(5);
+  PORTA &=0xf1;   
+
+   data = ( data <<4);                                                        
+   PORTA = data & 0xf1;
+   
+   PORTA |=((1<<2)|(1<<0));
+  _delay_ms(5);
+  PORTA &=0xf1;
+}
+
+void lcd_init(void)
+{
+  DDRD = 0x00;
+  PORTD = 0xFF;	
+
+  DDRA = 0xFF;
+  lcd_command(0x28);
+  lcd_command(0x0e);
+  lcd_command(0x01);
+  lcd_command(0x06);
+  lcd_command(0x80);
+
+
+ }
+
+ void lcd_write(char *string)
+ {
+ 	lcd_init();
+
+	char* ptr = string;	
+
+	while(*ptr != '\0') {
+		lcd_data(*ptr);
+		ptr++;
+	}
+}
+
+
+ int main()
+ {
+ 	lcd_init();
+	lcd_write("Start");
+	PIND = 0xff;
+ 	while(1) {
+
+
+ 	
+		if(0 == (PIND & (1 << 6))) {
+			PIND |= (1 << 6);
+			lcd_write("SW1 Pressed");
+		}
+
+		if(0 == (PIND & (1 << 7))) {
+			PIND |= (1 << 7);
+			lcd_write("SW2 Pressed");
+		}
+	}
+}
+--------------------------------------------------------------------------
+
+8)
+
+check out 
+
+to do
+
+
+
+------------------------------------
+9)
+
+#include"avr/io.h"
+
+void delay_fun(void);
+
+void delay_fun(void)
+{
+	int timer_count = 0;
+	for(;timer_count<63;timer_count++)
+	{
+	
+	TCNT0=0x03;
+	TCCR0=0x05;
+	while((TIFR &(1<<TOV0))==0);
+	TCCR0=0;
+	TIFR=0x1;
+	}
+
+}
+
+int main()
+{
+	DDRB = 0xff;
+	while(1)
+	{
+		delay_fun();
+		PORTB = 0xFF;
+		delay_fun();
+		PORTB = 0x00;		
+	}
+}
+-------------------------------------------------------------------------
+10)
+#include<avr/io.h>
+#include<avr/interrupt.h>
+#include<util/delay.h>
+unsigned int var = 0;
+
+int main()
+{
+
+	DDRC = 0xFF;
+	PORTC = 0xFF;//port c as output
+    OCR0 = 0xFA;
+
+	TCCR0 = 0x05;//CLOCK/1024 PRESCALAR AND set WGM01 bit of TCCR
+	TIMSK = 0x02;//Timer/Counter0 Output Compare Match Interrupt is Enabled of TIMSK
+     sei();
+	while(1);
+}
+
+
+ISR(TIMER0_COMP_vect) //timer compare subroutine
+{
+	++var;
+	if(var == 4) //IF 4 TIME INTERRUPT OCCURS..MEANS 100ms
+	{
+		PORTC ^= 0xFF;   //TOGGLE PORTC
+		var = 0;
+	}
+}
+------------------------------------------------------------------------
+11)
+
+#include <avr/io.h>
+//#define F_CPU 16000000UL
+#include <util/delay.h>
+#include <avr/interrupt.h>
+
+#define LCD_PRT PORTA
+#define LCD_DDR DDRA
+#define LCD_PIN PINA
+#define LCD_RS 0
+#define LCD_RW 1
+#define LCD_EN 2
+int hour=0,min=0,sec=0,extra=0,count=0;
+
+
+void lcdCommand(unsigned char cmnd);
+void lcdData(unsigned char data);
+void lcd_init();
+
+void lcd_print(char *str);
+
+void display();
+void timer_init();
+
+void lcdCommand(unsigned char cmnd)
+{
+
+
+LCD_PRT=((LCD_PRT&0x0F)|(cmnd & 0xF0));
+LCD_PRT&=~(1<<LCD_RS);
+LCD_PRT&=~(1<<LCD_RW);
+LCD_PRT|=(1<<LCD_EN);
+_delay_ms(10);
+LCD_PRT&=~(1<<LCD_EN);
+
+
+_delay_ms(10);
+
+
+LCD_PRT=(LCD_PRT&0X0F)|(cmnd<<4);
+LCD_PRT|=(1<<LCD_EN);
+_delay_ms(10);
+LCD_PRT&=~(1<<LCD_EN);
+
+}
+
+
+void lcdData(unsigned char data)
+{
+
+LCD_PRT=(LCD_PRT&0X0F)|(data & 0XF0);
+LCD_PRT|=(1<<LCD_RS);
+LCD_PRT&=~(1<<LCD_RW);
+LCD_PRT|=(1<<LCD_EN);
+_delay_ms(1);
+LCD_PRT&=~(1<<LCD_EN);
+_delay_ms(1);
+
+LCD_PRT=((LCD_PRT&0x0F)|(data<<4 ));
+LCD_PRT|=(1<<LCD_EN);
+_delay_ms(1);
+LCD_PRT&=~(1<<LCD_EN);
+_delay_ms(1);
+
+
+
+}
+
+void lcd_init(void)
+{
+LCD_DDR = 0xFF;
+LCD_PRT&=~(1<<LCD_EN);
+_delay_us(2);
+
+lcdCommand(0x28);
+_delay_us(1);
+lcdCommand(0x0E);
+_delay_us(1);
+lcdCommand(0x01);
+_delay_us(1);
+lcdCommand(0x06);
+_delay_us(1);
+
+
+}
+
+
+
+void lcd_print(char *str)
+{
+
+unsigned char i=0;
+while(str[i]!=0)
+{
+lcdData(str[i]);
+i++;
+
+}
+
+}
+
+ISR(TIMER0_COMP_vect)
+{
+    ++count;
+    if(count==16)
+    {
+        //PORTC^=0XFF;
+        count=0;
+        
+        ++sec;
+        if(sec==60)
+        {
+            sec=0;
+            ++min;
+            if(min==60)
+            {
+                min=0;
+                ++hour;
+                if(hour==24)
+                {
+                    hour=0;
+                }
+            }
+        }
+        display();
+
+    }
+}
+
+
+
+void display()
+{
+    int temp;
+    lcdCommand(0XC4);
+    temp=hour/10;
+    temp=temp%10;
+    lcdData(temp+48 );
+    temp=hour%10;
+    lcdData(temp+48);
+    lcdData(':');
+    temp=min/10;
+    temp=temp%10;
+    lcdData(temp+48 );
+    temp=min%10;
+    lcdData(temp+48);
+    lcdData(':');
+    temp=sec/10;
+    temp=temp%10;
+    lcdData(temp+48 );
+    temp=sec%10;
+    lcdData(temp+48);
+
+}
+
+void timer_init()
+{
+    TCCR0|=((1<<0)|(1<<2)|(1<<3));
+    sei();
+    TCNT0=0X00;
+    OCR0=0XFF;
+    TIMSK|=(1<<1);
+
+}
+
+int main(void)
+{
+
+
+lcd_init();
+lcdCommand(0x83);
+lcd_print("***TIME***");
+DDRC=0XFF;
+PORTC=0XFF;
+timer_init();
+while(1);
+
+
+return 0;
+
+}
+---------------------------------END--------------------------------------
