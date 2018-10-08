@@ -1,0 +1,268 @@
+
+
+AVR ASSIGNMENT 1:
+
+;1. Push the contents of registers R0-R7 and SREG on the stack and
+;Pop them back into the registers R16-R23 and SREG respectively.
+.include "m128def.inc"
+;LABEL OPCODE OPERANDS 			COMMENTS
+
+		LDI  R16,HIGH(RAMEND)  ;
+		OUT  SPH, R16
+		LDI  R16,LOW(RAMEND)
+		OUT  SPL,R16
+		LDI  R17,8
+		LDI  R18,10
+		LDI  XL,0X00  		   ;use x register for DATA memory access
+		LDI  XH,0X00  		   ;this value indicates your register r0 at initial
+
+LOOP: 	ST 	 X+,R17            ;store R17 in x and increment VALUE IN X REGISTER
+							   ;(PINCR)
+	  	DEC  R17  			   ;counter value stored in general registers and ;   
+	  	                       ;decremented after every loop
+	    BRNE loop 
+		PUSH R0
+		PUSH R1
+		PUSH R2
+		PUSH R3
+		PUSH R4
+		PUSH R5
+		PUSH R6
+		PUSH R7
+		IN R31,SREG
+		PUSH R31
+		POP R31
+		POP R16
+		POP R17
+		POP R18
+		POP R19
+		POP R20
+		POP R21
+		POP R22
+		POP R23
+		OUT SREG,r31
+stop:   RJMP stop
+
+
+----------------------------------------------------------------------
+
+;2. Write a program to call two subroutines which will perform 16 bit
+;unsigned addition and subtraction respectively.
+;Note: register combination may be used for doing the 16 bit
+;operation.
+
+.include "m128def.inc"
+;LABEL OPCODE OPERANDS 			COMMENTS
+		LDI R16,HIGH(RAMEND)  
+		OUT SPH, R16
+		LDI R16,LOW(RAMEND)
+		OUT SPL,R16
+		LDI R16,10
+		LDI R17,20
+		LDI R18,30
+		LDI R19,90
+		CALL add1
+		LDI R20,10
+		LDI R21,20
+		LDI R22,30
+		LDI R23,40
+		CALL sub1 
+stop:	RJMP stop
+
+
+add1:	ADD r16,r19
+		ADC r17,r30
+		RET
+
+
+sub1:	SUB r23,r20
+		SBC r22,r21
+		
+
+
+--------------------------------------------------------------
+;3. Write a program to call two subroutines which will perform 8 bit
+;unsigned addition and subtraction respectively.
+;Note: register combination may be used for doing the 8 bit
+;operation.
+
+.include "m128def.inc"
+;LABEL OPCODE OPERANDS 			COMMENTS
+		LDI R16,HIGH(RAMEND)  ;initialization is needed while using sub routine
+		OUT SPH, R16
+		LDI R16,LOW(RAMEND)
+		OUT SPL,R16
+		LDI R16,10
+		LDI R17,20
+		CALL add1
+		LDI R20,10
+		LDI R21,20
+		CALL sub1
+stop:	RJMP stop
+
+add1:	ADD R16,R17
+		RET  				;most important is returning while using subroutine
+sub1:
+		SUB r21,r20
+		RET
+
+-----------------------------------------------------------------------
+;4. Assuming that 10 bytes of data is residing at the SRAM location
+;0x0500 onwards. Add all the bytes taking into account carry
+;propagation and store the result at 0x0600 location.
+.include "m128def.inc"
+.EQU rambuff=0x0500 ;.equ is directive for constants
+;LABEL OPCODE OPERANDS 			COMMENTS
+		LDI R16,high(ramend) ;stack intialization
+		OUT SPH,R16
+		LDI R16,low(ramend)
+		OUT SPL,R16
+		LDI XL,low(rambuff) ;x will be pointing to ram address
+		LDI XH,high(rambuff)
+		LDI R17,10 ;count for 10 bytes
+		LDI R19,0 ;intialization for zero
+loop: st X+,R17 ;adding of 10 bytes of data which was in sram
+	  ld R18,X+
+	  adc R19,R18
+	  dec R17
+	  brne loop
+sts 0x0600,R19 ;store 10 bytes added number in 0x0600 location
+stop:rjmp stop
+
+------------------------------------------------------------------------------
+5)
+;5. Perform a block data transfer of 16 bytes from SRAM location
+;0x0100 onwards into the registers R0-R15.
+.include "m128def.inc"
+;LABEL OPCODE OPERANDS 			COMMENTS
+		LDI  R16,high(ramend)
+		OUT  SPH,R16
+		LDI  R16,low(ramend)
+		OUT  SPL,R16
+		LDI  R19,10
+		LDI  XH,0x01
+		LDI  XL,0x00
+loop: 	ST X+,R19
+	  	DEC R19
+	  	BRNE loop
+		LDI XH,0x01
+		LDI XL,0x00
+		LDI YL,0x00
+		LDI YH,0x00
+		LDI R20,10
+loop1: 	LD R30,X+ 				;load data from 0x0100 location to register
+	   	ST Y+,R30  				;store data from register to ox0000 location
+	   	DEC R20
+	   	BRNE loop1
+stop:	RJMP stop
+
+
+-------------------------------------------------------------------------
+;6. Write a program to copy the registers R16-R25 into the registers
+;R0-R14 using indirect addressing mode
+.include "m128def.inc"
+;LABEL OPCODE OPERANDS 			COMMENTS
+.equ rambuff=0x0010
+LDI r16,10
+LDI xl,low(rambuff) ;pointing to r16 that is  source
+LDI xh,high(rambuff)
+loop:	ST x+,r16 ; giving some values into source
+		DEC r16
+		BRNE loop
+		LDI XL,0x10
+		LDI XH,0x00
+		LDI YL,0x00
+		LDI YH,0x00
+		LDI R31,10
+looop:  R17,X+ ;first storing values into register
+	   	ST Y+,R17 ;loading register values into destination registers
+		DEC R31
+		BRNE looop
+stop :  RJMP stop
+-----------------------------------------------------------------------------
+7)
+;7. Write a program to copy a string of characters which are burned in
+;the flash memory 0x1000 onwards to SRAM locations 0x0100
+;onwards.
+.equ ram_buff=0x0100
+.org 0x0000
+.include "m128def.inc"
+ldi zh,high(mydata<<1) ;accessing program memory address
+ldi zl,low(mydata<<1)
+ldi xh,high(ram_buff) ;now x is pointing to destination address
+ldi xl,low(ram_buff)
+looop: lpm r16,z+ ;load string values into register 
+		cpi r16,0 ;comparing whether it is null or not
+		breq stop
+		st x+,r16 ;load register value to destination address
+		rjmp looop
+stop : rjmp stop
+
+
+
+.org 0x1000
+mydata: .db "cdac banglore",0  ;program memory label
+
+----------------------------------------------------------------------------------
+8)
+;8. Write a program to copy a string of characters which are burned in
+;he flash memory 0x9000 onwards to SRAM locations 0x0100
+;onwards.
+;note1: you may terminate the string with 0 to mark the end of string.
+;note2: make use of ELPM instruction.
+.equ ram_buff=0x0100
+.org 0x0000
+.include "m128def.inc"
+ldi zh,high(mydata<<1)
+ldi zl,low(mydata<<1)
+ldi xh,high(ram_buff)
+ldi xl,low(ram_buff)
+LDI R20,0b00000001;ramz using because location address is 9000 i.e more than 16 bit
+OUT RAMPZ,R20
+loop: elpm r16,z+
+	  cpi r16,0
+	  breq stop
+	  st x+,r16
+	  rjmp loop
+stop : rjmp stop
+
+.org 0x9000
+mydata: .db "India is incredible",0;Prpgram memory
+---------------------------------------------
+
+9)
+;9. Write a program which defines a macro that takes two parameters,
+;the parameters are the start and end of the SRAM addresses. The
+;macro definition should clear the SRAM locations from start to end.
+;Note: the start and end addresses can be any location in the SRAM
+;address space.
+
+.equ ram_start = 0x0100
+.equ ram_end =0x010a
+
+.INCLUDE"M128DEF.INC"
+.MACRO clearr
+      ldi r19,5
+	  ldi r20,0x00
+here: st @0+,r20
+      st -@1,r20
+	  dec r19
+	  brne here
+	  ldi r20,0x1f
+.ENDMACRO
+
+
+
+
+.org 0x0000
+     ldi xh,high(ram_start)
+     ldi xl,low(ram_start)
+     ldi yh,high(ram_end)
+     ldi yl,low(ram_end)
+     clearr x,y
+here1:rjmp here1
+
+
+
+
+
